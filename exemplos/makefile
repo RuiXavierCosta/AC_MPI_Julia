@@ -1,4 +1,5 @@
-CC=mpicc
+CC_MPI=mpicc
+CC_OMP=gcc -fopenmp -g
 RUN_CMD = mpiexec −f
 CLUSTER = cluster_right
 .PHONY: all_targets
