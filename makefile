@@ -1,4 +1,4 @@
-CC=gcc -fopenmp -g
+CC=mpicc
 CFLAGS=-I.
 BUILD_DIR = build
 IMAGES_DIR = build/images

@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <math.h>
 #include <stdio.h>
+#include "mpi.h"
 #include "fractal/fractalfuncs.h"
 
 // #ifdef _OPENMP
@@ -187,8 +188,12 @@ int main(int argc, char ** argv){
     struct IMG * img;
     int nepocs=0;
     float alpha=0;
-
+    int rank , size;
 	
+    MPI_Init( &argc , &argv );
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank );
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
     if (argc==1){
 	resx=640;
 	resy=480;
@@ -228,5 +233,7 @@ int main(int argc, char ** argv){
     
     if(nepocs>0)
 	difuse(img,nepocs,alpha);
+    
+	MPI_Finalize();
 }
 										  
