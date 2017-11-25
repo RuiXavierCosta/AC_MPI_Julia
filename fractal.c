@@ -17,91 +17,20 @@
 // #endif
 
 void Generate(struct IMG * img){
-    int j=0;
     int scrsizex,scrsizey;
     scrsizex=img->cols;
     scrsizey=img->rows;
     int nloops= 0;
 	
-	//#pragma omp parallel reduction(+: j) num_threads(4)
-	{
-		//#pragma omp sections
-		{
-			//#pragma omp section
-			{
-				do //Start vertical loop
-				{
-					int i=0;
-					do							  			   //Start horizontal loop
-					{			
-						julia(img,i,j);
-						i++;
-						nloops++;
-					}
-					while ( (i<scrsizex)  );	  //End horizontal loop
-				j++;
-				}
-				while ( (j<1*(scrsizey/4)) );        //End vertical loop
-				//printf("loops so far: %d\n, nloops);
-			}
-			//#pragma omp section
-			{
-				j = 1*(scrsizey/4);
-				do //Start vertical loop
-				{
-					int i=0;
-					do							  			   //Start horizontal loop
-					{			
-						julia(img,i,j);
-						i++;
-						nloops++;
-					}
-					while ( (i<scrsizex)  );	  //End horizontal loop
-				j++;
-				}
-				while ( (j< 2* (scrsizey/4))  );        //End vertical loop
-				//printf("loops so far: %d\n, nloops);
-			}
-			//#pragma omp section
-			{
-				j = 2*(scrsizey/4);
-				do //Start vertical loop
-				{
-					int i=0;
-					do							  			   //Start horizontal loop
-					{			
-						julia(img,i,j);
-						i++;
-						nloops++;
-					}
-					while ( (i<scrsizex)  );	  //End horizontal loop
-				j++;
-				}
-				while ( (j< 3* (scrsizey/4))  );        //End vertical loop
-				//printf("loops so far: %d\n, nloops);
-			}
-			//#pragma omp section
-			{
-				j = 3*(scrsizey/4);
-				do //Start vertical loop
-				{
-					int i=0;
-					do							  			   //Start horizontal loop
-					{			
-						julia(img,i,j);
-						i++;
-						nloops++;
-					}
-					while ( (i<scrsizex)  );	  //End horizontal loop
-				j++;
-				}
-				while ( (j< 4* (scrsizey/4))  );        //End vertical loop
-				//printf("loops so far: %d\n, nloops);
-			}
-		}
-		// printf("The total number of iterations is %d\n",
-		// nloops);
-	}	
+	for(int j = 0; j<scrsizey; j++) //Start vertical loop
+    {
+		for(int i = 0; i<scrsizex ; i++)						  			   //Start horizontal loop
+		{				
+			julia(img,i,j);							   
+			i++;
+			nloops++;
+		} //End horizontal loop
+    } //End vertical loop
 }
 
 PIXEL calculateDiffusion(int i, int j, struct IMG * I_k, float alpha){
