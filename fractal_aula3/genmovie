@@ -1,0 +1,9 @@
+#!/bin/sh
+convert build/julia.pgm build/difuse_images/output0000.png
+for i in build/difuse_images/output????.jpg
+do
+convert $i build/difuse_images/`basename $i .jpg`.png
+done
+ffmpeg -framerate 5 -i build/difuse_images/output%04d.png -s:v 800x600 -c:v libx264 \
+-profile:v high -crf 20 -pix_fmt yuv420p build/output.mp4
+
