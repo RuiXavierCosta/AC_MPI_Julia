@@ -8,12 +8,12 @@
 #include <stdio.h>
 #include "fractal/fractalfuncs.h"
 
-#ifdef _OPENMP
-	#include <omp.h>
-#else
-	#define omp_get_num_threads() 0
-	#define omp_get_thread_num() 0
-#endif
+// #ifdef _OPENMP
+// 	#include <omp.h>
+// #else
+// 	#define omp_get_num_threads() 0
+// 	#define omp_get_thread_num() 0
+// #endif
 
 void Generate(struct IMG * img){
     int j=0;
@@ -22,11 +22,11 @@ void Generate(struct IMG * img){
     scrsizey=img->rows;
     int nloops= 0;
 	
-	#pragma omp parallel reduction(+: j) num_threads(4)
+	//#pragma omp parallel reduction(+: j) num_threads(4)
 	{
-		#pragma omp sections
+		//#pragma omp sections
 		{
-			#pragma omp section
+			//#pragma omp section
 			{
 				do //Start vertical loop
 				{
@@ -43,7 +43,7 @@ void Generate(struct IMG * img){
 				while ( (j<1*(scrsizey/4)) );        //End vertical loop
 				//printf("loops so far: %d\n, nloops);
 			}
-			#pragma omp section
+			//#pragma omp section
 			{
 				j = 1*(scrsizey/4);
 				do //Start vertical loop
@@ -61,7 +61,7 @@ void Generate(struct IMG * img){
 				while ( (j< 2* (scrsizey/4))  );        //End vertical loop
 				//printf("loops so far: %d\n, nloops);
 			}
-			#pragma omp section
+			//#pragma omp section
 			{
 				j = 2*(scrsizey/4);
 				do //Start vertical loop
@@ -79,7 +79,7 @@ void Generate(struct IMG * img){
 				while ( (j< 3* (scrsizey/4))  );        //End vertical loop
 				//printf("loops so far: %d\n, nloops);
 			}
-			#pragma omp section
+			//#pragma omp section
 			{
 				j = 3*(scrsizey/4);
 				do //Start vertical loop
@@ -160,9 +160,9 @@ void difuse(struct IMG * imgin, int nepocs, float alpha){
 	// apply diffusion for each color channel, NEVER mixing them...
         for(j=1; j < imgin->cols -1; j++)
         {
-            #pragma omp parallel
+            //#pragma omp parallel
             {
-                #pragma omp for
+                //#pragma omp for
                 for(i=1; i < imgin->rows -1; i++)
                 {
 					imgnew->pixels[j * imgnew->cols + i] = calculateDiffusion(i, j, imgin, alpha);
