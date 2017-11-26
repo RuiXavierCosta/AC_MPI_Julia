@@ -6,8 +6,13 @@
 #include <fcntl.h>
 #include <math.h>
 #include <stdio.h>
-#include "mpi.h"
 #include "fractal/fractalfuncs.h"
+
+#define MPI_PARALLEL
+#ifdef MPI_PARALLEL
+#include <mpi.h>
+#endif
+
 
 // #ifdef _OPENMP
 // 	#include <omp.h>
@@ -15,6 +20,8 @@
 // 	#define omp_get_num_threads() 0
 // 	#define omp_get_thread_num() 0
 // #endif
+
+
 
 void Generate(struct IMG * img){
     int scrsizex,scrsizey;
@@ -119,9 +126,19 @@ int main(int argc, char ** argv){
     float alpha=0;
     int rank , size;
 	
+//alteração
+#ifdef MPI_PARALLEL
+
+MPI_Status *status;
+
     MPI_Init( &argc , &argv );
     MPI_Comm_rank(MPI_COMM_WORLD, &rank );
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+status=(MPI_Status*) calloc_1d_array, sizeof(MPI_Status));
+#endif
+
+//finito
 
     if (argc==1){
 	resx=640;
@@ -165,4 +182,3 @@ int main(int argc, char ** argv){
     
 	MPI_Finalize();
 }
-										  
