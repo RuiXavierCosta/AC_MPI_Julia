@@ -87,7 +87,7 @@ void difuse(struct IMG * imgin, int nepocs, float alpha){
     int k, i, j;
     char filename[200];
 	clock_t t1,t2;
-	
+
     imgnew=(struct IMG *) malloc(sizeof(struct IMG));
     imgnew->rows=imgin->rows;
     imgnew->cols=imgin->cols;
@@ -127,58 +127,59 @@ int main(int argc, char ** argv){
     int rank , size;
 	
 //alteração
-#ifdef MPI_PARALLEL
+    #ifdef MPI_PARALLEL
+        MPI_Status *status;
 
-MPI_Status *status;
+        MPI_Init( &argc , &argv );
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank );
+        MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    MPI_Init( &argc , &argv );
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank );
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+        status=(MPI_Status*) malloc(sizeof(MPI_Status));
+    #endif
 
-status=(MPI_Status*) calloc_1d_array, sizeof(MPI_Status));
-#endif
-
-//finito
-
-    if (argc==1){
-	resx=640;
-	resy=480;
-    } else if ((argc==3)||(argc==5)){
-	resx=atoi(argv[1]);
-	resy=atoi(argv[2]);
-	if(argc==5){
-	    nepocs=atoi(argv[3]);
-	    alpha=atof(argv[4]);
-	    if (alpha<0.0 || alpha>1.0){
-		printf("Alpha tem de estar entre 0 e 1\n");
+	if(rank == 0){
+		if (argc==1){
+		resx=640;
+		resy=480;
+		} else if ((argc==3)||(argc==5)){
+		resx=atoi(argv[1]);
+		resy=atoi(argv[2]);
+		if(argc==5){
+			nepocs=atoi(argv[3]);
+			alpha=atof(argv[4]);
+			if (alpha<0.0 || alpha>1.0){
+			printf("Alpha tem de estar entre 0 e 1\n");
+			exit(1);
+			}
+		}
+		} else {
+		printf("Erro no número de argumentos\n");
+		printf("Se não usar argumentos a imagem de saida terá dimensões 640x480\n");
+		printf("Senão devera especificar o numero de colunas seguido do numero de linhas\n");
+		printf("Adicionalmente poderá especificar o numero de epocas de difusao e o factor de difusao,\\ caso contrario serao considerados como 0.");
+		printf("\nExemplo: %s 320 240 \n",argv[0]);
+		printf("\nExemplo: %s 320 240 100 0.5\n",argv[0]);
 		exit(1);
-	    }
+		}
+		img=(struct IMG *)malloc(sizeof(struct IMG));
+		
+		img->pixels=(PIXEL *)malloc(resx*resy*sizeof(PIXEL));
+		img->cols=resx;
+		img->rows=resy;
 	}
-    } else {
-	printf("Erro no número de argumentos\n");
-	printf("Se não usar argumentos a imagem de saida terá dimensões 640x480\n");
-	printf("Senão devera especificar o numero de colunas seguido do numero de linhas\n");
-	printf("Adicionalmente poderá especificar o numero de epocas de difusao e o factor de difusao,\\ caso contrario serao considerados como 0.");
-	printf("\nExemplo: %s 320 240 \n",argv[0]);
-	printf("\nExemplo: %s 320 240 100 0.5\n",argv[0]);
-	exit(1);
-    }
-    img=(struct IMG *)malloc(sizeof(struct IMG));
-    
-    img->pixels=(PIXEL *)malloc(resx*resy*sizeof(PIXEL));
-    img->cols=resx;
-    img->rows=resy;
-    
-	
-    t1=clock();
-    Generate(img);
-    t2=clock();
-    printf("Julia Fractal gerado em %6.3f secs.\n",(((double)(t2-t1))/CLOCKS_PER_SEC));
-    //	mandel(img,resx,resy);
-    saveimg(img,"build/julia.pgm");
-    
-    if(nepocs>0)
-	difuse(img,nepocs,alpha);
+		
+	t1=clock();
+	Generate(img);
+	t2=clock();
+
+	if(rank == 0){
+		printf("Julia Fractal gerado em %6.3f secs.\n",(((double)(t2-t1))/CLOCKS_PER_SEC));
+		//	mandel(img,resx,resy);
+		saveimg(img,"build/julia.pgm");
+		
+		if(nepocs>0)
+		difuse(img,nepocs,alpha);
+	}
     
 	MPI_Finalize();
 }
