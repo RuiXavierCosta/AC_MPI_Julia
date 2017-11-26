@@ -23,13 +23,14 @@
 
 
 
-void Generate(struct IMG * img){
+void Generate(struct IMG * img, int cluster_size, int rank){
     int scrsizex,scrsizey;
     scrsizex=img->cols;
     scrsizey=img->rows;
     int nloops= 0;
-	
-	for(int j = 0; j<scrsizey; j++) //Start vertical loop
+    int loopStart = ( rank - 1 ) * (scrsizey / ( cluster_size - 1 ));
+    
+	for(int j = loopStart; j<scrsizey; j++) //Start vertical loop
     {
 		for(int i = 0; i<scrsizex ; i++)						  			   //Start horizontal loop
 		{				
@@ -124,7 +125,7 @@ int main(int argc, char ** argv){
     struct IMG * img;
     int nepocs=0;
     float alpha=0;
-    int rank , size;
+    int rank = 0, size;
 	
 //alteração
     #ifdef MPI_PARALLEL
@@ -137,48 +138,77 @@ int main(int argc, char ** argv){
         status=(MPI_Status*) malloc(sizeof(MPI_Status));
     #endif
 
-	if(rank == 0){
-		if (argc==1){
-		resx=640;
-		resy=480;
-		} else if ((argc==3)||(argc==5)){
-		resx=atoi(argv[1]);
-		resy=atoi(argv[2]);
-		if(argc==5){
-			nepocs=atoi(argv[3]);
-			alpha=atof(argv[4]);
-			if (alpha<0.0 || alpha>1.0){
-			printf("Alpha tem de estar entre 0 e 1\n");
-			exit(1);
-			}
-		}
-		} else {
-		printf("Erro no número de argumentos\n");
-		printf("Se não usar argumentos a imagem de saida terá dimensões 640x480\n");
-		printf("Senão devera especificar o numero de colunas seguido do numero de linhas\n");
-		printf("Adicionalmente poderá especificar o numero de epocas de difusao e o factor de difusao,\\ caso contrario serao considerados como 0.");
-		printf("\nExemplo: %s 320 240 \n",argv[0]);
-		printf("\nExemplo: %s 320 240 100 0.5\n",argv[0]);
-		exit(1);
-		}
-		img=(struct IMG *)malloc(sizeof(struct IMG));
-		
-		img->pixels=(PIXEL *)malloc(resx*resy*sizeof(PIXEL));
-		img->cols=resx;
-		img->rows=resy;
-	}
-		
-	t1=clock();
-	Generate(img);
-	t2=clock();
+    if (argc==1){
+        resx=640;
+        resy=480;
+    } else if ((argc==3)||(argc==5)){
+        resx=atoi(argv[1]);
+        resy=atoi(argv[2]);
+    if(argc==5){
+        nepocs=atoi(argv[3]);
+        alpha=atof(argv[4]);
+        if (alpha<0.0 || alpha>1.0){
+        printf("Alpha tem de estar entre 0 e 1\n");
+        exit(1);
+        }
+    }
+    } else {
+        printf("Erro no número de argumentos\n");
+        printf("Se não usar argumentos a imagem de saida terá dimensões 640x480\n");
+        printf("Senão devera especificar o numero de colunas seguido do numero de linhas\n");
+        printf("Adicionalmente poderá especificar o numero de epocas de difusao e o factor de difusao,\\ caso contrario serao considerados como 0.");
+        printf("\nExemplo: %s 320 240 \n",argv[0]);
+        printf("\nExemplo: %s 320 240 100 0.5\n",argv[0]);
+        exit(1);
+    }  
 
-	if(rank == 0){
-		printf("Julia Fractal gerado em %6.3f secs.\n",(((double)(t2-t1))/CLOCKS_PER_SEC));
+
+    int img_size = resx*resy*sizeof(PIXEL);
+    resy = resy / (size - 1);
+
+    if( rank !=0 ) {
+        img=(struct IMG *)malloc(sizeof(struct IMG));
+        // divisao pelos varios procs, sem contar com proc 0
+        img->pixels=(PIXEL *)malloc(img_size);
+        img->cols=resx;
+        img->rows=resy;
+
+	    t1=clock();
+	    Generate(img, size, rank);
+        t2=clock();
+
+        double time = (((double)(t2-t1))/CLOCKS_PER_SEC);
+
+        MPI_Send((void*)&time, sizeof(double), MPI_CHAR, 0, 0, MPI_COMM_WORLD);
+        MPI_Send((void*)img->pixels, img_size, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
+    } else {
+        double time_mess;
+        double clk;
+        struct IMG * img_mess;
+
+        img_mess = (struct IMG *)malloc(sizeof(struct IMG));
+        img_mess->pixels=(PIXEL *)malloc(img_size);
+        img_mess->cols=resx;
+        img_mess->rows=resy;
+        
+        img=(struct IMG *)malloc(sizeof(struct IMG));
+        img->pixels=(PIXEL *)malloc(resx*resy*sizeof(PIXEL));
+        img->cols=resx;
+        img->rows=resy;
+
+        for( int source = 1 ; source < size ; source++){
+            MPI_Recv((void*)&time_mess , sizeof(double), MPI_CHAR, source , 0 , MPI_COMM_WORLD, status);
+            printf("%6.3f\n", time_mess );
+            MPI_Recv((void*)img_mess->pixels,  img_size, MPI_CHAR, source , 1 , MPI_COMM_WORLD, status);
+            //printf("second message received %f %f \n", img_mess->pixels[0].r, img_mess->pixels[20].r);
+            clk += (double)time_mess;
+        }
+		printf("Julia Fractal gerado em %6.3f secs.\n",clk);
 		//	mandel(img,resx,resy);
-		saveimg(img,"build/julia.pgm");
+		//saveimg(img,"build/julia.pgm");
 		
-		if(nepocs>0)
-		difuse(img,nepocs,alpha);
+		//if(nepocs>0)
+		//difuse(img,nepocs,alpha);
 	}
     
 	MPI_Finalize();
