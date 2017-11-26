@@ -28,9 +28,11 @@ void Generate(struct IMG * img, int cluster_size, int rank){
     scrsizex=img->cols;
     scrsizey=img->rows;
     int nloops= 0;
-    int loopStart = ( rank - 1 ) * (scrsizey / ( cluster_size - 1 ));
-    
-	for(int j = loopStart; j<scrsizey; j++) //Start vertical loop
+    int loop_start = ( rank - 1 ) * (scrsizey / cluster_size - 1);
+    int loop_end = ( rank ) * (scrsizey / cluster_size - 1);
+    printf("loop_start is %d and loop_end is %d, with rank: %d and cluster_size: %d\n", loop_start, loop_end, rank, cluster_size);
+	
+    for(int j = loop_start; j<loop_end; j++) //Start vertical loop
     {
 		for(int i = 0; i<scrsizex ; i++)						  			   //Start horizontal loop
 		{				
@@ -39,84 +41,6 @@ void Generate(struct IMG * img, int cluster_size, int rank){
 			nloops++;
 		} //End horizontal loop
     } //End vertical loop
-}
-
-PIXEL calculateDiffusion(int i, int j, struct IMG * I_k, float alpha){
-    PIXEL diffused_pixel;
-    
-    diffused_pixel.r = (1 - alpha) * I_k->pixels[j * I_k->cols + i].r +  //(1 − α)Ik(i, j) +
-        alpha * (1/8) * (                       // α*(1/8)[
-            I_k->pixels[(j-1) * I_k->cols + (i-1)].r +     // Ik(i-1, j-1)] +
-            I_k->pixels[j * I_k->cols + i-1].r +           // Ik(i − 1, j) + 
-            I_k->pixels[(j + 1) * I_k->cols + i-1].r +     // Ik(i − 1, j + 1) +
-            I_k->pixels[(j - 1) * I_k->cols + i].r +       // Ik(i, j − 1) +
-            I_k->pixels[(j + 1) * I_k->cols + i].r +       // Ik(i, j + 1) +
-            I_k->pixels[(j - 1) * I_k->cols + i+1].r +     // Ik(i + 1, j − 1) +
-            I_k->pixels[j * I_k->cols + i+1].r +           // Ik(i + 1, j) +
-            I_k->pixels[(j + 1) * I_k->cols + i + 1].r     // Ik(i + 1, j + 1)] ,
-        );      
-
-    diffused_pixel.g = (1 - alpha) * I_k->pixels[j * I_k->cols + i].g +  //(1 − α)Ik(i, j) +
-        alpha * (1/8) * (                       // α*(1/8)[
-            I_k->pixels[(j-1) * I_k->cols + (i-1)].g +     // Ik(i-1, j-1)] +
-            I_k->pixels[j * I_k->cols + i-1].g +           // Ik(i − 1, j) + 
-            I_k->pixels[(j + 1) * I_k->cols + i-1].g +     // Ik(i − 1, j + 1) +
-            I_k->pixels[(j - 1) * I_k->cols + i].g +       // Ik(i, j − 1) +
-            I_k->pixels[(j + 1) * I_k->cols + i].g +       // Ik(i, j + 1) +
-            I_k->pixels[(j - 1) * I_k->cols + i+1].g +     // Ik(i + 1, j − 1) +
-            I_k->pixels[j * I_k->cols + i+1].g +           // Ik(i + 1, j) +
-            I_k->pixels[(j + 1) * I_k->cols + i + 1].g     // Ik(i + 1, j + 1)] ,
-        );  
-
-    diffused_pixel.b = (1 - alpha) * I_k->pixels[j * I_k->cols + i].b +  //(1 − α)Ik(i, j) +
-        alpha * (1/8) * (                       // α*(1/8)[
-            I_k->pixels[(j-1) * I_k->cols + (i-1)].b +     // Ik(i-1, j-1)] +
-            I_k->pixels[j * I_k->cols + i-1].b +           // Ik(i − 1, j) + 
-            I_k->pixels[(j + 1) * I_k->cols + i-1].b +     // Ik(i − 1, j + 1) +
-            I_k->pixels[(j - 1) * I_k->cols + i].b +       // Ik(i, j − 1) +
-            I_k->pixels[(j + 1) * I_k->cols + i].b +       // Ik(i, j + 1) +
-            I_k->pixels[(j - 1) * I_k->cols + i+1].b +     // Ik(i + 1, j − 1) +
-            I_k->pixels[j * I_k->cols + i+1].b +           // Ik(i + 1, j) +
-            I_k->pixels[(j + 1) * I_k->cols + i + 1].b     // Ik(i + 1, j + 1)] ,
-        );  
-
-    return diffused_pixel;
-}
-
-void difuse(struct IMG * imgin, int nepocs, float alpha){
-    struct IMG * temp,*imgnew;
-    int k, i, j;
-    char filename[200];
-	clock_t t1,t2;
-
-    imgnew=(struct IMG *) malloc(sizeof(struct IMG));
-    imgnew->rows=imgin->rows;
-    imgnew->cols=imgin->cols;
-    imgnew->pixels=(PIXEL *)malloc(imgnew->cols*imgnew->rows*sizeof(PIXEL));
-	t1 = clock();
-    for (k=1;k<=nepocs;k++){
-	// apply diffusion for each color channel, NEVER mixing them...
-        for(j=1; j < imgin->cols -1; j++)
-        {
-            //#pragma omp parallel
-            {
-                //#pragma omp for
-                for(i=1; i < imgin->rows -1; i++)
-                {
-					imgnew->pixels[j * imgnew->cols + i] = calculateDiffusion(i, j, imgin, alpha);
-                }
-            }
-        }
-        
-        sprintf(filename,"build/difuse_images/output%04d.jpg",k);
-        saveimg(imgnew,filename);
-        temp=imgin;
-        imgin=imgnew;
-        imgnew=temp;
-	}
-	
-    t2=clock();
-    printf("Imagens geradas em %6.3f secs.\n",(((double)(t2-t1))/CLOCKS_PER_SEC));
 }
     
 int main(int argc, char ** argv){
@@ -141,17 +65,9 @@ int main(int argc, char ** argv){
     if (argc==1){
         resx=640;
         resy=480;
-    } else if ((argc==3)||(argc==5)){
+    } else if (argc==3){
         resx=atoi(argv[1]);
         resy=atoi(argv[2]);
-    if(argc==5){
-        nepocs=atoi(argv[3]);
-        alpha=atof(argv[4]);
-        if (alpha<0.0 || alpha>1.0){
-        printf("Alpha tem de estar entre 0 e 1\n");
-        exit(1);
-        }
-    }
     } else {
         printf("Erro no número de argumentos\n");
         printf("Se não usar argumentos a imagem de saida terá dimensões 640x480\n");
@@ -164,13 +80,13 @@ int main(int argc, char ** argv){
 
 
     int img_size = resx*resy*sizeof(PIXEL);
-    resy = resy / (size - 1);
+    int imgy = resy / (size - 1);
 
     if( rank !=0 ) {
         img=(struct IMG *)malloc(sizeof(struct IMG));
         // divisao pelos varios procs, sem contar com proc 0
         img->pixels=(PIXEL *)malloc(img_size);
-        img->cols=resx;
+        img->cols=imgy;
         img->rows=resy;
 
 	    t1=clock();
@@ -180,8 +96,11 @@ int main(int argc, char ** argv){
         double time = (((double)(t2-t1))/CLOCKS_PER_SEC);
 
         MPI_Send((void*)&time, sizeof(double), MPI_CHAR, 0, 0, MPI_COMM_WORLD);
-        MPI_Send((void*)img->pixels, img_size, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
-    } else {
+        MPI_Send((void*)img->pixels, img_size, MPI_CHAR, 0, rank, MPI_COMM_WORLD);
+        // printf("rank %d is sending this: \nr:%f g:%f b:%f, \nr:%f g:%f b:%f\n\n", rank, 
+        //     img->pixels[img->cols/4].r, img->pixels[img->cols/4].g, img->pixels[img->cols/4].b,
+        //     img->pixels[img->cols/2].r, img->pixels[img->cols/2].g, img->pixels[img->cols/2].b);
+    } else { 
         double time_mess;
         double clk;
         struct IMG * img_mess;
@@ -195,20 +114,37 @@ int main(int argc, char ** argv){
         img->pixels=(PIXEL *)malloc(resx*resy*sizeof(PIXEL));
         img->cols=resx;
         img->rows=resy;
+        int chunk_size = (resx * resy) / ( size -1 );
 
         for( int source = 1 ; source < size ; source++){
             MPI_Recv((void*)&time_mess , sizeof(double), MPI_CHAR, source , 0 , MPI_COMM_WORLD, status);
             printf("%6.3f\n", time_mess );
-            MPI_Recv((void*)img_mess->pixels,  img_size, MPI_CHAR, source , 1 , MPI_COMM_WORLD, status);
-            //printf("second message received %f %f \n", img_mess->pixels[0].r, img_mess->pixels[20].r);
+            MPI_Recv( img_mess->pixels,  img_size, MPI_CHAR, source , source , MPI_COMM_WORLD, status);
+            // printf("second message received from %d \nr:%f g:%f b:%f, \nr:%f g:%f b:%f\n\n", source,
+            //     img_mess->pixels[img_mess->cols/4].r, img_mess->pixels[img_mess->cols/4].g, img_mess->pixels[img_mess->cols/4].b,
+            //     img_mess->pixels[img_mess->cols/2].r, img_mess->pixels[img_mess->cols/2].g, img_mess->pixels[img_mess->cols/2].b);
             clk += (double)time_mess;
+            
+            int j = 0;
+            
+            for( int i = (source-1) * chunk_size; i <  source * chunk_size; i++){
+                img->pixels[i] = img_mess->pixels[j];
+                j++;
+            }
         }
+
 		printf("Julia Fractal gerado em %6.3f secs.\n",clk);
+
+        /*
+	    t1=clock();
+	    Generate(img, 4, 1 );
+        t2=clock();
+        printf("rank %d is sending this: \nr:%f g:%f b:%f, \nr:%f g:%f b:%f\n\n", rank, 
+            img->pixels[img->cols/4].r, img->pixels[img->cols/4].g, img->pixels[img->cols/4].b,
+            img->pixels[img->cols/2].r, img->pixels[img->cols/2].g, img->pixels[100/2].b);
 		//	mandel(img,resx,resy);
-		//saveimg(img,"build/julia.pgm");
-		
-		//if(nepocs>0)
-		//difuse(img,nepocs,alpha);
+		*/
+        saveimg(img,"build/julia.pgm");
 	}
     
 	MPI_Finalize();
