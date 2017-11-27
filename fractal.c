@@ -28,9 +28,9 @@ void Generate(struct IMG * img, int cluster_size, int rank){
     scrsizex=img->cols;
     scrsizey=img->rows;
     int nloops= 0;
-    int loop_start = ( rank - 1 ) * (scrsizey / cluster_size - 1);
-    int loop_end = ( rank ) * (scrsizey / cluster_size - 1);
-    printf("loop_start is %d and loop_end is %d, with rank: %d and cluster_size: %d\n", loop_start, loop_end, rank, cluster_size);
+    int loop_start =(int) ( rank - 1 ) * ceil(scrsizey / (cluster_size - 1));
+    int loop_end =(int) ( rank ) * ceil(scrsizey / (cluster_size - 1));
+    //printf("loop_start is %d and loop_end is %d, with rank: %d and cluster_size: %d\n", loop_start, loop_end, rank, cluster_size);
 	
     for(int j = loop_start; j<loop_end; j++) //Start vertical loop
     {
@@ -78,15 +78,13 @@ int main(int argc, char ** argv){
         exit(1);
     }  
 
-
     int img_size = resx*resy*sizeof(PIXEL);
-    int imgy = resy / (size - 1);
 
     if( rank !=0 ) {
         img=(struct IMG *)malloc(sizeof(struct IMG));
         // divisao pelos varios procs, sem contar com proc 0
         img->pixels=(PIXEL *)malloc(img_size);
-        img->cols=imgy;
+        img->cols=resx;
         img->rows=resy;
 
 	    t1=clock();
@@ -125,11 +123,9 @@ int main(int argc, char ** argv){
             //     img_mess->pixels[img_mess->cols/2].r, img_mess->pixels[img_mess->cols/2].g, img_mess->pixels[img_mess->cols/2].b);
             clk += (double)time_mess;
             
-            int j = 0;
-            
+            printf("loop_start is %d and loop_end is %d\n", (source-1) * chunk_size, (source) * chunk_size);
             for( int i = (source-1) * chunk_size; i <  source * chunk_size; i++){
-                img->pixels[i] = img_mess->pixels[j];
-                j++;
+                img->pixels[i] = img_mess->pixels[i];
             }
         }
 
